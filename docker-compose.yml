@@ -36,31 +36,5 @@ services:
       retries: 10
       start_period: 30s
 
-  app:
-    build: .
-    ports:
-      - "8080:8080"
-    environment:
-      DB_HOST: postgres
-      DB_PORT: 5432
-      DB_NAME: persondb
-      DB_USERNAME: postgres
-      DB_PASSWORD: postgres
-      # Tokens issued by Keycloak carry iss=http://localhost:8180/realms/myrealm
-      JWT_ISSUER_URI: http://localhost:8180/realms/myrealm
-      # Fetch JWKs via internal docker network (keycloak service name) to avoid hairpin routing
-      JWK_SET_URI: http://keycloak:8080/realms/myrealm/protocol/openid-connect/certs
-    depends_on:
-      postgres:
-        condition: service_healthy
-      keycloak:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "curl -sf http://localhost:8080/actuator/health/readiness || exit 1"]
-      interval: 15s
-      timeout: 5s
-      retries: 10
-      start_period: 60s
-
 volumes:
   postgres_data:
