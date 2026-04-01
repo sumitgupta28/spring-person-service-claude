@@ -1,0 +1,32 @@
+# Build outputs
+build/
+.gradle/
+
+# IDE files
+.idea/
+*.iml
+*.iws
+*.ipr
+.vscode/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+
+# Docker artifacts (avoid recursive context)
+Dockerfile
+.dockerignore
+docker-compose.yml
+
+# Kubernetes / skaffold
+k8s/
+skaffold.yaml
+
+# Claude / docs
+CLAUDE.md
+.claude/
+.claude-plugin/

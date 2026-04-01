@@ -1,0 +1,66 @@
+services:
+
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: persondb
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d persondb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Keycloak in dev mode (H2 in-memory DB — data lost on restart)
+  # After startup, create realm "myrealm" at http://localhost:8180 (admin/admin)
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.1
+    command: start-dev
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+      # KC_HOSTNAME_URL controls the issuer in issued tokens — must match JWT_ISSUER_URI below
+      KC_HOSTNAME_URL: http://localhost:8180
+      KC_HOSTNAME_ADMIN_URL: http://localhost:8180
+    ports:
+      - "8180:8080"
+    healthcheck:
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/localhost/8080"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  app:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: persondb
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+      # Tokens issued by Keycloak carry iss=http://localhost:8180/realms/myrealm
+      JWT_ISSUER_URI: http://localhost:8180/realms/myrealm
+      # Fetch JWKs via internal docker network (keycloak service name) to avoid hairpin routing
+      JWK_SET_URI: http://keycloak:8080/realms/myrealm/protocol/openid-connect/certs
+    depends_on:
+      postgres:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8080/actuator/health/readiness || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+
+volumes:
+  postgres_data:
